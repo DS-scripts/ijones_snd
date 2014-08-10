@@ -58,6 +58,10 @@ def parse():
     parser.add_option_group(dgroup)
     parser.add_option_group(sgroup)
 
+    if len(sys.argv[1:]) == 0:
+        parser.print_help()
+        sys.exit(1)
+
     # parser.print_help()
     return parser.parse_args()
 
