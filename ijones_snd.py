@@ -112,7 +112,7 @@ def parse():
                                                 help="Wipe clean entire database")
     cgroup = OptionGroup(parser, "Clear Options",)
 
-    sgroup.add_option("-c","--clear",
+    cgroup.add_option("-c","--clear",
                               action="store_true", dest="clear",default=False,
                                                 help="Clear the database")
     parser.add_option_group(dgroup)
