@@ -161,8 +161,14 @@ def parse():
     sgroup.add_option("-w","--wipe",
                               action="store_true", dest="wipe",default=False,
                                                 help="Wipe clean entire database")
+    cgroup = OptionGroup(parser, "Clear Options",)
+
+    sgroup.add_option("-c","--clear",
+                              action="store_true", dest="clear",default=False,
+                                                help="Clear the database")
     parser.add_option_group(dgroup)
     parser.add_option_group(sgroup)
+    parser.add_option_group(cgroup)
 
     if len(sys.argv[1:]) == 0:
         parser.print_help()
@@ -390,6 +396,53 @@ def wipe(sqlobj):
     logger.debug("Database wiped clean")
     return
 
+def clear(sources,sqlobj):
+    logger.debug("Sources selected: %s" % sources)
+    if len(sources) == 0: sources = [""]
+    for source in sources:
+        sys.stdout.write("\r")
+        sys.stdout.write(bcolors.green+"    Clearing ")
+        sys.stdout.write(bcolors.red+"%s" % source)
+        sys.stdout.write(bcolors.green+" ............. ")
+        sys.stdout.flush()
+        logger.info("Clearing %s" % source)
+        quote = "'"
+        if source.find("'") >= 0: quote = '"'
+        sql = "SELECT ID,PATH,CTIME,SIZE FROM SND WHERE PATH LIKE %s%s%s" % (quote,source + "%%",quote)
+        out = sqlobj.execute(sql)
+# -=- Progress Bar 2 (class ProgressBar1) -=---------------------------
+        count = 0           # Progress Bar counter
+        p = ProgressBar1(len(out))
+        p.fill_char = '='
+# -=- End Progress Bar 2 ----------------------------------------------
+        for sqlid,sqlpath,sqlctime,sqlsize in out:
+# -=- Progress Bar 2 (class ProgressBar1) -=---------------------------
+            count+=1           # Increment for progress bar count
+            str1 = bcolors.green+"    Clearing "+bcolors.red+" %s "%source
+            str2 = str1+bcolors.green+"............. "+bcolors.yellow
+            p.update_time(count)
+            sys.stdout.write("\r")
+            sys.stdout.write("%s%s" % (str2, p))
+            sys.stdout.flush()
+# -=- End Progress Bar 2 -=-------------------------------------------
+            if not os.path.exists(sqlpath):
+                logger.debug("File %s not found. Deleting" % sqlpath)
+                sqlobj.execute("DELETE FROM SND WHERE ID=%s" % (sqlid,))
+                continue
+            logger.debug("Stating file %s" % sqlpath)
+            stat    = os.stat(sqlpath)
+            size    = stat.st_size
+            logger.debug("Size: %s b" % size)
+            ctime   = int(stat.st_ctime)
+            logger.debug("Last metadata changed: %s sec since epoch" % ctime)
+            if sqlctime != ctime:
+                logger.warn("File %s in the database has different ctime. Deleting db/real -> %s/%s" % (sqlpath,sqlctime,ctime))
+                sqlobj.execute("DELETE FROM SND WHERE ID=%s" % (sqlid,))
+            if sqlsize != size:
+                logger.warn("File %s in the database has different size. Deleting db/real -> %s/%s" % (sqlpath,sqlsize,size))
+                sqlobj.execute("DELETE FROM SND WHERE ID=%s" % (sqlid,))
+    print
+
 if __name__ == "__main__":
     options,arguments = parse()
 
@@ -440,4 +493,11 @@ if __name__ == "__main__":
         logger.debug("Destroy mode active")
         destroy(sources,options.dryrun,sqlobj)
 
+    if options.clear:
+        logger.debug("Clear mode active")
+        sources = arguments
+        # if len(arguments) == 0:
+        #     sources = [os.getcwd()]
+        logger.info("Sources: %s" % sources)
+        clear(sources,sqlobj)
     logger.info("Finish processing")
