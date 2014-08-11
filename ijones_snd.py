@@ -362,10 +362,13 @@ def seek(sources,sqlobj):
             if len(out) == 1:
                 sqlctime,sqlsize = out[0]
                 if sqlctime == ctime and sqlsize == size:
-                    logger.info("File %s already in the database and seems to be the same (ctime comparison) " % (filepath,))
+                    logger.info("File %s already in the database and seems to be the same (ctime comparison and size) " % (filepath,))
                     continue
                 else:
-                    logger.warn("File %s already in the database and is different. updating" % (filepath,))
+                    if sqlctime != ctime:
+                        logger.warn("File %s already in the database and ctime is different db/real -> %s/%s" % (filepath,sqlctime,ctime))
+                    if sqlsize != size:
+                        logger.warn("File %s already in the database and size is different db/real -> %s/%s" % (filepath,sqlsize,size))
                     update = True
             md5     = get_md5(filepath)
             logger.debug("MD5 for file %s is %s" % (filename,md5))
