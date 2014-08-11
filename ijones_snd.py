@@ -217,6 +217,7 @@ class sqlite_snd:
             self.logger.debug("Main table created successfully")
         self.execute("CREATE INDEX IF NOT EXISTS idxmd5  on SND (MD5);")
         self.execute("CREATE INDEX IF NOT EXISTS idxsize on SND (SIZE);")
+        self.execute("CREATE INDEX IF NOT EXISTS idxpath on SND (PATH);")
         self.logger.info("Main table and indexes available")
         return
 
