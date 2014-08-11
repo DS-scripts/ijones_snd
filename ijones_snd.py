@@ -357,7 +357,9 @@ def seek(sources,sqlobj):
             logger.debug("Size: %s b" % size)
             ctime   = int(stat.st_ctime)
             logger.debug("Last metadata changed: %s sec since epoch" % ctime)
-            sql = "SELECT CTIME,SIZE FROM SND WHERE PATH='%s' " % (filepath,)
+            quote = "'"
+            if filepath.find("'") >= 0: quote = '"'
+            sql = "SELECT CTIME,SIZE FROM SND WHERE PATH=%s%s%s " % (quote,filepath,quote)
             out = sqlobj.execute(sql)
             if len(out) == 1:
                 sqlctime,sqlsize = out[0]
