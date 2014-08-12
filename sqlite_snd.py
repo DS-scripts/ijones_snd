@@ -10,23 +10,24 @@ sqlitepath = "~/.ijones/p.sqlite"
 program_name    = "IJ SND"
 class sqlite_snd:
     def __init__(self,database=sqlitepath):
-        self.logger = logging.getLogger(program_name + ".sqlite")
+#        self.logger = logging.getLogger(program_name + ".sqlite")
         self.database = database
-        self.logger.debug("Database in use: %s" % database)
+#        self.logger.debug("Database in use: %s" % database)
         self.create_connection()
+    def initdb(self, db)
 
     def create_connection(self):
         if not os.path.isfile(self.database ):
             basedir = os.path.split(self.database)[0]
             if not os.path.isdir(basedir):
                 os.makedirs(basedir)
-        self.logger.debug("Creating connection")
+#        self.logger.debug("Creating connection")
         self.conn = sqlite3.connect(self.database)
-        self.logger.info("Database connection established")
+#        self.logger.info("Database connection established")
         self.create_mastertable()
 
     def execute(self,sql):
-        self.logger.debug("Executing SQL statement: %s" % sql)
+#        self.logger.debug("Executing SQL statement: %s" % sql)
         try:
             self.conn.execute(sql)
             if sql.lstrip().upper().startswith("SELECT"):
@@ -36,15 +37,15 @@ class sqlite_snd:
             self.conn.commit()
 
         except sqlite3.Error as e:
-            logger.critical("An error occurred: %s" % (e.args[0],))
+#            logger.critical("An error occurred: %s" % (e.args[0],))
         except:
-            logger.critical("Unexpected error: %s" % (sys.exc_info(),))
+#            logger.critical("Unexpected error: %s" % (sys.exc_info(),))
 
     def create_mastertable(self):
-        self.logger.debug("Checking if main table exists")
+#        self.logger.debug("Checking if main table exists")
         sql="SELECT name FROM sqlite_master WHERE type='table' AND name='SND';"
         if len(self.execute(sql)) == 0:
-            self.logger.debug("Main table do not exists. Creating")
+#            self.logger.debug("Main table do not exists. Creating")
             self.execute('''CREATE TABLE SND
                 (ID INTEGER PRIMARY KEY     AUTOINCREMENT,
                 PATH            TEXT        NOT NULL,
@@ -55,5 +56,5 @@ class sqlite_snd:
         self.execute("CREATE INDEX IF NOT EXISTS idxmd5  on SND (MD5);")
         self.execute("CREATE INDEX IF NOT EXISTS idxsize on SND (SIZE);")
         self.execute("CREATE INDEX IF NOT EXISTS idxpath on SND (PATH);")
-        self.logger.info("Main table and indexes available")
+#        self.logger.info("Main table and indexes available")
         return
