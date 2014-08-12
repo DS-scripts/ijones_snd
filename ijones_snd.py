@@ -8,173 +8,16 @@ import subprocess
 import sqlite3
 import logging
 
-from optparse import OptionParser,OptionGroup
+from optparse       import OptionParser,OptionGroup
+from bcolors        import bcolors
+from ProgressBar    import ProgressBar
+from cli            import parse
+from sqlite_snd     import sqlite_snd
 
 sqlitepath = "~/.ijones/p.sqlite"
 program_name    = "IJ SND"
+version = "%s 0.1beta" % program_name
 
-
-# -=-[STDOUT Colors]-=-
-class bcolors:
-    gray             = '\033[1;30m'
-    red              = '\033[1;31m'
-    green            = '\033[1;32m'
-    yellow           = '\033[1;33m'
-    blue             = '\033[1;34m'
-    magenta          = '\033[1;35m'
-    cyan             = '\033[1;36m'
-    white            = '\033[1;37m'
-    highlightgreen   = '\033[1;42m'
-    highlightblue    = '\033[1;44m'
-    highlightmagenta = '\033[1;45m'
-    highlightcyan    = '\033[1;46m'
-    highlightred     = '\033[1;48m'
-    reset            = '\033[0m'
-
-
-
-class ProgressBar:
-    def __init__(self, duration):
-        self.duration = duration
-        self.prog_bar = '[]'
-        self.fill_char = '#'
-        self.width = 40
-        self.__update_amount(0)
-
-    def animate(self):
-        for i in range(self.duration):
-            if sys.platform.lower().startswith('win'):
-                print self, '\r',
-            else:
-                print self, chr(27) + '[A'
-            self.update_time(i + 1)
-        print self
-
-    def update_time(self, elapsed_secs):
-        self.__update_amount((elapsed_secs / float(self.duration)) * 100.0)
-        self.prog_bar += '  %d/%s' % (elapsed_secs, self.duration)
-
-    def __update_amount(self, new_amount):
-        percent_done = int(round((new_amount / 100.0) * 100.0))
-        all_full = self.width - 2
-        num_hashes = int(round((percent_done / 100.0) * all_full))
-        self.prog_bar = '[' + self.fill_char * num_hashes + ' ' * (all_full - num_hashes) + ']'
-        pct_place = (len(self.prog_bar) / 2) - len(str(percent_done))
-        pct_string = '%d%%' % percent_done
-        self.prog_bar = self.prog_bar[0:pct_place] + \
-            (pct_string + self.prog_bar[pct_place + len(pct_string):])
-
-    def __str__(self):
-        return str(self.prog_bar)
-
-
-def parse():
-    usage   = "usage: %prog [options] [SOURCE1] [SOURCE2] ..."
-    epilogue = "When no source is defined, use ."
-    version = "%s 0.1beta" % program_name
-    parser = OptionParser(usage = usage, version = version, epilog = epilogue)
-    parser.set_defaults(dryrun=True)
-
-    parser.add_option("-v", "--verbose",
-                              action="count", dest="verbose", default=0,
-                                                help="Increase verbosity")
-    parser.add_option("-q", "--quiet",
-                              action="store_const", dest="verbose",const = -1,
-                                                help="Ultra quiet mode")
-    parser.add_option("-r", "--relative",
-                              action="store_true", dest="relative",default=False,
-                                                help="Use relative Filepath instead of Full Qualified File Name")
-    parser.add_option("--database",
-                              action="store_const", dest="rdb",
-                                                metavar="DATABASE",
-                                                help="force usage of external database")
-    dgroup = OptionGroup(parser, "Destroy Options",
-                                "Caution: use these options at your own risk. "
-                                "Compare source to database. "
-                                "When no source is informed, '.' is used as default")
-    dgroup.add_option("--live-destruction",
-                              action="store_false", dest="dryrun",
-                                                help="Use with destroy mode to perform a FULL DESTRUCTION OF ALL DATA, duplicated data anyways. [NOT IMPLEMENTED]")
-    dgroup.add_option("--dry-run",
-                              action="store_true", dest="dryrun",
-                                                help="Use with destroy mode to perform a simulation [Default]")
-    dgroup.add_option("-d","--destroy",
-                              action="store_true", dest="destroy",default=False,
-                                                help="Careful, do not use with quiet options")
-    sgroup = OptionGroup(parser, "Seek Options",
-                                "Safe: These options do not harm your data")
-
-    sgroup.add_option("-s","--seek",
-                              action="store_true", dest="seek",default=False,
-                                                help="Build/Update database")
-    sgroup.add_option("-w","--wipe",
-                              action="store_true", dest="wipe",default=False,
-                                                help="Wipe clean entire database")
-    cgroup = OptionGroup(parser, "Clear Options",)
-
-    cgroup.add_option("-c","--clear",
-                              action="store_true", dest="clear",default=False,
-                                                help="Clear the database")
-    parser.add_option_group(dgroup)
-    parser.add_option_group(sgroup)
-    parser.add_option_group(cgroup)
-
-    if len(sys.argv[1:]) == 0:
-        parser.print_help()
-        sys.exit(1)
-
-    # parser.print_help()
-    return parser.parse_args()
-
-class sqlite_snd:
-    def __init__(self,database=sqlitepath):
-        self.logger = logging.getLogger(program_name + ".sqlite")
-        self.database = database
-        self.logger.debug("Database in use: %s" % database)
-        self.create_connection()
-
-    def create_connection(self):
-        if not os.path.isfile(self.database ):
-            basedir = os.path.split(self.database)[0]
-            if not os.path.isdir(basedir):
-                os.makedirs(basedir)
-        self.logger.debug("Creating connection")
-        self.conn = sqlite3.connect(self.database)
-        self.logger.info("Database connection established")
-        self.create_mastertable()
-
-    def execute(self,sql):
-        self.logger.debug("Executing SQL statement: %s" % sql)
-        try:
-            self.conn.execute(sql)
-            if sql.lstrip().upper().startswith("SELECT"):
-                out = self.conn.execute(sql).fetchall()
-                self.logger.debug("SQLFetch: %s" % out)
-                return out
-            self.conn.commit()
-
-        except sqlite3.Error as e:
-            logger.critical("An error occurred: %s" % (e.args[0],))
-        except:
-            logger.critical("Unexpected error: %s" % (sys.exc_info(),))
-
-    def create_mastertable(self):
-        self.logger.debug("Checking if main table exists")
-        sql="SELECT name FROM sqlite_master WHERE type='table' AND name='SND';"
-        if len(self.execute(sql)) == 0:
-            self.logger.debug("Main table do not exists. Creating")
-            self.execute('''CREATE TABLE SND
-                (ID INTEGER PRIMARY KEY     AUTOINCREMENT,
-                PATH            TEXT        NOT NULL,
-                MD5             TEXT        NOT NULL,
-                SIZE            INTEGER     NOT NULL,
-                CTIME           DATE        NOT NULL);''')
-            self.logger.debug("Main table created successfully")
-        self.execute("CREATE INDEX IF NOT EXISTS idxmd5  on SND (MD5);")
-        self.execute("CREATE INDEX IF NOT EXISTS idxsize on SND (SIZE);")
-        self.execute("CREATE INDEX IF NOT EXISTS idxpath on SND (PATH);")
-        self.logger.info("Main table and indexes available")
-        return
 
 def get_md5(filepath):
     logger.debug("md5summing %s" % filepath)
@@ -293,7 +136,7 @@ def seek(sources,sqlobj):
             p.update_time(count)
             sys.stdout.write("\r")
             sys.stdout.write("%s%s" % (str2, p))
-            sys.stdout.flush()
+#            sys.stdout.flush()
 # -=- End Progress Bar -=-------------------------------------------
             filename = os.path.split(filepath)[1]
             update = False
@@ -319,7 +162,10 @@ def seek(sources,sqlobj):
                     if sqlsize != size:
                         logger.warn("File %s already in the database and size is different db/real -> %s/%s" % (filepath,sqlsize,size))
                     update = True
+            sys.stdout.write(bcolors.blue+" MD5")
             md5     = get_md5(filepath)
+#            sys.stdout.write("    ")
+            sys.stdout.flush()
             logger.debug("MD5 for file %s is %s" % (filename,md5))
             if update:
                 sql = "UPDATE SND SET MD5='%s',SIZE='%s',CTIME='%s' WHERE PATH='%s';" % (md5,size,int(ctime),filepath)
@@ -384,7 +230,7 @@ def clear(sources,sqlobj):
     print
 
 if __name__ == "__main__":
-    options,arguments = parse()
+    options,arguments = parse(version)
 
     ### LOG DEF ####################################################################
     loglvl = 40 - options.verbose*10
