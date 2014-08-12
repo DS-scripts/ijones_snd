@@ -216,9 +216,9 @@ def seek(sources,sqlobj):
             sys.stdout.flush()
             logger.debug("MD5 for file %s is %s" % (filename,md5))
             if update:
-                sql = "UPDATE SND SET MD5='%s',SIZE='%s',CTIME='%s' WHERE PATH='%s';" % (md5,size,int(ctime),filepath)
+                sql = "UPDATE SND SET MD5='%s',SIZE='%s',CTIME='%s' WHERE PATH=%s%s%s;" % (md5,size,int(ctime),quote,filepath,quote)
             if not update:
-                sql = "INSERT INTO SND (PATH,MD5,SIZE,CTIME) VALUES ('%s','%s',%s,%s)" % (filepath,md5,size,int(ctime))
+                sql = "INSERT INTO SND (PATH,MD5,SIZE,CTIME) VALUES (%s%s%s,'%s',%s,%s)" % (quote,filepath,quote,md5,size,int(ctime))
             sqlobj.execute(sql)
         print (bcolors.reset+" ")
     print (bcolors.reset+" ")
