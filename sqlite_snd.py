@@ -14,7 +14,6 @@ class sqlite_snd:
         self.database = database
 #        self.logger.debug("Database in use: %s" % database)
         self.create_connection()
-    def initdb(self, db)
 
     def create_connection(self):
         if not os.path.isfile(self.database ):
