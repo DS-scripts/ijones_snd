@@ -12,60 +12,11 @@ from optparse       import OptionParser,OptionGroup
 from bcolors        import bcolors
 from ProgressBar    import ProgressBar
 from cli            import parse
+from sqlite_snd     import sqlite_snd
 
 sqlitepath = "~/.ijones/p.sqlite"
 program_name    = "IJ SND"
 version = "%s 0.1beta" % program_name
-
-class sqlite_snd:
-    def __init__(self,database=sqlitepath):
-        self.logger = logging.getLogger(program_name + ".sqlite")
-        self.database = database
-        self.logger.debug("Database in use: %s" % database)
-        self.create_connection()
-
-    def create_connection(self):
-        if not os.path.isfile(self.database ):
-            basedir = os.path.split(self.database)[0]
-            if not os.path.isdir(basedir):
-                os.makedirs(basedir)
-        self.logger.debug("Creating connection")
-        self.conn = sqlite3.connect(self.database)
-        self.logger.info("Database connection established")
-        self.create_mastertable()
-
-    def execute(self,sql):
-        self.logger.debug("Executing SQL statement: %s" % sql)
-        try:
-            self.conn.execute(sql)
-            if sql.lstrip().upper().startswith("SELECT"):
-                out = self.conn.execute(sql).fetchall()
-                self.logger.debug("SQLFetch: %s" % out)
-                return out
-            self.conn.commit()
-
-        except sqlite3.Error as e:
-            logger.critical("An error occurred: %s" % (e.args[0],))
-        except:
-            logger.critical("Unexpected error: %s" % (sys.exc_info(),))
-
-    def create_mastertable(self):
-        self.logger.debug("Checking if main table exists")
-        sql="SELECT name FROM sqlite_master WHERE type='table' AND name='SND';"
-        if len(self.execute(sql)) == 0:
-            self.logger.debug("Main table do not exists. Creating")
-            self.execute('''CREATE TABLE SND
-                (ID INTEGER PRIMARY KEY     AUTOINCREMENT,
-                PATH            TEXT        NOT NULL,
-                MD5             TEXT        NOT NULL,
-                SIZE            INTEGER     NOT NULL,
-                CTIME           DATE        NOT NULL);''')
-            self.logger.debug("Main table created successfully")
-        self.execute("CREATE INDEX IF NOT EXISTS idxmd5  on SND (MD5);")
-        self.execute("CREATE INDEX IF NOT EXISTS idxsize on SND (SIZE);")
-        self.execute("CREATE INDEX IF NOT EXISTS idxpath on SND (PATH);")
-        self.logger.info("Main table and indexes available")
-        return
 
 def get_md5(filepath):
     logger.debug("md5summing %s" % filepath)
@@ -244,13 +195,13 @@ def clear(sources,sqlobj):
         if source.find("'") >= 0: quote = '"'
         sql = "SELECT ID,PATH,CTIME,SIZE FROM SND WHERE PATH LIKE %s%s%s" % (quote,source + "%%",quote)
         out = sqlobj.execute(sql)
-# -=- Progress Bar 2 (class ProgressBar1) -=---------------------------
+# -=- Progress Bar (class ProgressBar) -=---------------------------
         count = 0           # Progress Bar counter
-        p = ProgressBar1(len(out))
+        p = ProgressBar(len(out))
         p.fill_char = '='
-# -=- End Progress Bar 2 ----------------------------------------------
+# -=- End Progress Bar  ----------------------------------------------
         for sqlid,sqlpath,sqlctime,sqlsize in out:
-# -=- Progress Bar 2 (class ProgressBar1) -=---------------------------
+# -=- Progress Bar (class ProgressBar) -=---------------------------
             count+=1           # Increment for progress bar count
             str1 = bcolors.green+"    Clearing "+bcolors.red+" %s "%source
             str2 = str1+bcolors.green+"............. "+bcolors.yellow
@@ -304,7 +255,7 @@ if __name__ == "__main__":
             database = os.path.expanduser(sqlitepath)
             logger.warning("User defined database not found. Falling back to default: %s" % database)
     logger.debug("DataBase file: %s" % database)
-    sqlobj = sqlite_snd(database)
+    sqlobj = sqlite_snd(database, program_name)
 
     if options.wipe:
         logger.debug("Wipe mode")
