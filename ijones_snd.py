@@ -70,7 +70,6 @@ def ignore_dir(filepath):
 def ignore_file(filepath):
     return False
 
-
 def exists_in_db(filepath,md5):
     sql = "SELECT PATH FROM SND WHERE MD5='%s' " % (md5,)
     sqlout = sqlobj.execute(sql)
@@ -107,6 +106,8 @@ def destroy(sources,dryrun,sqlobj):
                 remove,msg = exists_in_db(filepath,md5)
                 if remove:
                     remove_file(filepath,msg)
+
+    if len(sources) == 0:
     pass
 
 def seek(sources,sqlobj):
