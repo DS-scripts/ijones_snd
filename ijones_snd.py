@@ -17,7 +17,7 @@ from sqlite_snd     import sqlite_snd
 
 sqlitepath = "~/.ijones/p.sqlite"
 program_name    = "IJ SND"
-version = "%s 0.1beta" % program_name
+version = "%s 0.0.1beta" % program_name
 
 def get_md5(filepath):
     logger.debug("md5summing %s" % filepath)
