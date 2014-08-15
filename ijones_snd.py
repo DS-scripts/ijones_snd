@@ -58,11 +58,11 @@ def get_filelist(source):
     return filelist
 
 def fix_filepath(filepath):
-    return filepath.replace(" ","\ ")
+    return filepath.replace(" ", r"\ ")
 
-def remove_file(filepath,msg = ""):
+def remove_file(filepath, msg=""):
     filepath = fix_filepath(filepath)
-    print "#/bin/rm -rf %s # %s" % (filepath,msg)
+    print "#/bin/rm -rf %s # %s" % (filepath, msg)
 
 def ignore_dir(filepath):
     return False
@@ -70,7 +70,7 @@ def ignore_dir(filepath):
 def ignore_file(filepath):
     return False
 
-def exists_in_db(filepath,md5):
+def exists_in_db(filepath, md5):
     sql = "SELECT PATH FROM SND WHERE MD5='%s' " % (md5,)
     sqlout = sqlobj.execute(sql)
     if len(sqlout) == 0:
@@ -86,31 +86,46 @@ def exists_in_db(filepath,md5):
     logger.debug("File %s found in the database as %s. removing from source" % (filepath,databasefilepath))
     return (True,"File found in DB as %s" %(databasefilepath,))
 
-def destroy(sources,dryrun,sqlobj):
-    logger.debug("Sources selected: %s" % sources)
+def destroy(sources, dryrun, sqlobj):
+    logger.debug("Sources selected: %s", sources)
     if len(sources) != 0:
         for source in sources:
-            logger.info("Seeking through %s" % source)
+            logger.info("Seeking through %s", source)
             filelist = get_filelist(source)
             for filepath in filelist:
                 msg = ""
                 filepath = unicode(filepath)
                 filename = unicode(os.path.split(filepath)[1])
                 if ignore_dir(filepath):
-                    logger.debug("directory for file %s ignored" % (filepath,))
+                    logger.debug("directory for file %s ignored", filepath)
                 if ignore_file(filepath):
-                    logger.debug("file %s ignored" % (filepath,))
-                logger.debug("messing with file: %s" % filename)
-                md5     = get_md5(filepath)
-                logger.debug("MD5 for file %s is %s" % (filename,md5))
-                remove,msg = exists_in_db(filepath,md5)
+                    logger.debug("file %s ignored", filepath)
+                logger.debug("messing with file: %s", filename)
+                md5 = get_md5(filepath)
+                logger.debug("MD5 for file %s is %s", filename, md5)
+                remove, msg = exists_in_db(filepath, md5)
                 if remove:
-                    remove_file(filepath,msg)
+                    remove_file(filepath, msg)
 
     if len(sources) == 0:
-    pass
+        logger.info("Seeking through Database")
+        sql = "SELECT MD5 FROM SND GROUP BY MD5 HAVING COUNT(MD5)>1"
+        sqlout = sqlobj.execute(sql)
+        for md5 in sqlout:
+            logger.debug("Searching for duplicates with MD5=%s", md5)
+            sql = "SELECT PATH,CTIME FROM SND WHERE MD5='%s' ORDER BY CTIME" % md5
+            sqlout = sqlobj.execute(sql)
+            file_to_keep, ctime_to_keep = sqlout[-1]
+            logger.debug("Keeping file='%s', ctime='%s'",
+                        file_to_keep, ctime_to_keep)
+            for file_to_del, ctime_to_del in sqlout[:-1]:
+                logger.debug("Deleting file='%s', ctime='%s'",
+                            file_to_del, ctime_to_del)
+                remove_file(file_to_del, msg="keeping %s, ctime:%s" %
+                            (file_to_keep, ctime_to_keep))
 
-def seek(sources,sqlobj):
+
+def seek(sources, sqlobj):
     logger.debug("Sources selected: %s" % sources)
     print bcolors.cyan+">>> Seeking Mode "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
     for source in sources:
@@ -129,7 +144,7 @@ def seek(sources,sqlobj):
         p.fill_char = '='
 # -=- End Progress Bar 2 ----------------------------------------------
         for filepath in filelist:
-            count+=1           # Increment for progress bar count
+            count += 1           # Increment for progress bar count
 # -=- Progress Bar (class ProgressBar1) -=---------------------------
             str1 = bcolors.green+"    Seeking in"+bcolors.red+" %s "%source
             str2 = str1+bcolors.green+"............. "+bcolors.yellow
