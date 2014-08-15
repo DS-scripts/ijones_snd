@@ -7,6 +7,7 @@ import os
 import subprocess
 import sqlite3
 import logging
+import codecs
 
 from optparse       import OptionParser,OptionGroup
 from bcolors        import bcolors
@@ -62,7 +63,12 @@ def fix_filepath(filepath):
 
 def remove_file(filepath, msg=""):
     filepath = fix_filepath(filepath)
-    print "#/bin/rm -rf %s # %s" % (filepath, msg)
+    msg = "#/bin/rm -rf %s # %s" % (filepath, msg)
+    if options.destroy_filename:
+        with codecs.open(options.destroy_filename, 'a', encoding="utf-8") as destroyfile:
+            destroyfile.write(msg + "\n")
+        return
+    print msg
 
 def ignore_dir(filepath):
     return False
