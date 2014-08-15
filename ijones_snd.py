@@ -81,11 +81,11 @@ def exists_in_db(filepath, md5):
         logger.debug("databasefilepath = %s" % (databasefilepath.__repr__(),))
         logger.debug("        filepath = %s" % (filepath.__repr__(),))
         logger.debug("filepath == databasefilepath: %s" % (filepath == databasefilepath,))
-        if filepath == databasefilepath:
-            logger.debug("File %s found in the database and is the same. skiping" % filepath)
-            return (False,"")
-    logger.debug("File %s found in the database as %s. removing from source" % (filepath,databasefilepath))
-    return (True,"File found in DB as %s" %(databasefilepath,))
+        if filepath != databasefilepath:
+            logger.debug("File %s found in the database as %s." % (filepath,databasefilepath))
+            return (True,"File found in DB as %s" %(databasefilepath,))
+    logger.debug("File %s found in the database and is the same. skiping" % filepath)
+    return (False,"")
 
 def destroy(sources, dryrun, sqlobj):
     usermsg.destroymode()
