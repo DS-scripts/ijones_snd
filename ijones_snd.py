@@ -87,12 +87,16 @@ def exists_in_db(filepath, md5):
     return (True,"File found in DB as %s" %(databasefilepath,))
 
 def destroy(sources, dryrun, sqlobj):
+    usermsg.destroymode()
     logger.debug("Sources selected: %s", sources)
     if len(sources) != 0:
         for source in sources:
             logger.info("Seeking through %s", source)
             filelist = get_filelist(source)
+            usermsg.pbarinit(len(filelist))
+            usermsg.destroying(source)
             for filepath in filelist:
+                usermsg.destroyupdate(source)
                 msg = ""
                 filepath = unicode(filepath)
                 filename = unicode(os.path.split(filepath)[1])
@@ -106,7 +110,6 @@ def destroy(sources, dryrun, sqlobj):
                 remove, msg = exists_in_db(filepath, md5)
                 if remove:
                     remove_file(filepath, msg)
-
     if len(sources) == 0:
         logger.info("Seeking through Database")
         sql = "SELECT MD5 FROM SND GROUP BY MD5 HAVING COUNT(MD5)>1"
@@ -123,6 +126,7 @@ def destroy(sources, dryrun, sqlobj):
                             file_to_del, ctime_to_del)
                 remove_file(file_to_del, msg="keeping %s, ctime:%s" %
                             (file_to_keep, ctime_to_keep))
+    usermsg.reset()
 
 def seek(sources, sqlobj):
     logger.debug("Sources selected: %s" % sources)
@@ -132,7 +136,6 @@ def seek(sources, sqlobj):
         filelist = get_filelist(source)
         usermsg.pbarinit(len(filelist))
         usermsg.seeking(source)
-
         for filepath in filelist:
             usermsg.seekupdate(source)
             filename = os.path.split(filepath)[1]
@@ -184,11 +187,6 @@ def clear(sources,sqlobj):
     logger.debug("Sources selected: %s" % sources)
     if len(sources) == 0: sources = [""]
     for source in sources:
-        sys.stdout.write("\r")
-        sys.stdout.write(bcolors.green+"    Clearing ")
-        sys.stdout.write(bcolors.red+"%s" % source)
-        sys.stdout.write(bcolors.green+" ............. ")
-        sys.stdout.flush()
         logger.info("Clearing %s" % source)
         quote = "'"
         if source.find("'") >= 0: quote = '"'

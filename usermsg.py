@@ -6,7 +6,6 @@ import sys
 from bcolors        import bcolors
 from ProgressBar    import ProgressBar
 
-
 class usermsg:
     def __init__(self):
         pass
@@ -18,27 +17,46 @@ class usermsg:
         self.count = 0
 
     def seekmode(self):
-        print bcolors.cyan+">>> Seeking Mode "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
+        print bcolors.cyan+">>> Seeking Mode   "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
+
+    def destroymode(self):
+        print bcolors.cyan+">>> Destrying Mode "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
 
     def seeking(self, source):
         sys.stdout.write("\r")
         sys.stdout.write(bcolors.green+"    Seeking in ")
         sys.stdout.write(bcolors.red+"%s" % source)
-        sys.stdout.write(bcolors.green+" ............. ")
+        sys.stdout.write(bcolors.green+" ................. ")
         sys.stdout.flush()
 
     def seekupdate(self, source):
         self.count += 1
         str1 = bcolors.green+"    Seeking in"+bcolors.red+" %s "%source
+        str2 = str1+bcolors.green+"................. "+bcolors.yellow
+        self.p.update_time(self.count)
+        sys.stdout.write("\r")
+        sys.stdout.write("%s%s" % (str2, self.p))
+        sys.stdout.flush()
+
+    def destroying(self, source):
+        sys.stdout.write("\r")
+        sys.stdout.write(bcolors.green+"    Destroying in ")
+        sys.stdout.write(bcolors.red+"%s" % source)
+        sys.stdout.write(bcolors.green+" ............. ")
+        sys.stdout.flush()
+
+    def destroyupdate(self, source):
+        self.count += 1
+        str1 = bcolors.green+"    Destroying in "+bcolors.red+" %s "%source
         str2 = str1+bcolors.green+"............. "+bcolors.yellow
         self.p.update_time(self.count)
-
         sys.stdout.write("\r")
         sys.stdout.write("%s%s" % (str2, self.p))
         sys.stdout.flush()
 
     def md5(self):
         sys.stdout.write(bcolors.blue+" MD5")
+        sys.stdout.flush()
 
     def flist(self, source):
         sys.stdout.write("\r")
