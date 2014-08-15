@@ -17,10 +17,10 @@ class usermsg:
         self.count = 0
 
     def seekmode(self):
-        print bcolors.cyan+">>> Seeking Mode   "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
+        print bcolors.cyan+">>> Seeking Mode    "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
 
     def destroymode(self):
-        print bcolors.cyan+">>> Destrying Mode "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
+        print bcolors.cyan+">>> Destroying Mode "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
 
     def seeking(self, source):
         sys.stdout.write("\r")
