@@ -8,11 +8,11 @@ import subprocess
 import sqlite3
 import logging
 
-from optparse       import OptionParser,OptionGroup
 from bcolors        import bcolors
 from ProgressBar    import ProgressBar
 from cli            import parse
 from sqlite_snd     import sqlite_snd
+from usermsg        import usermsg
 
 sqlitepath = "~/.ijones/p.sqlite"
 program_name    = "IJ SND"
@@ -30,11 +30,7 @@ def get_md5(filepath):
         return stdoutsplit[0]
 
 def get_filelist(source):
-    sys.stdout.write("\r")
-    sys.stdout.write(bcolors.green+"    Getting file list in ")
-    sys.stdout.write(bcolors.red+"%s" % source)
-    sys.stdout.write(bcolors.green+" ... ")
-    sys.stdout.flush()
+    usermsg.flist(source)
     filelist = []
     for r,d,f in os.walk(source):
         logger.debug("Walking into: %s" % r)
@@ -52,9 +48,7 @@ def get_filelist(source):
                 logger.warning("%s is link. Not following" % filepath)
                 continue
             filelist.append(filepath)
-    sys.stdout.write(bcolors.white+"["+bcolors.blue+"done"+bcolors.white+"]")
-    sys.stdout.flush()
-    print bcolors.reset
+    usermsg.done()
     return filelist
 
 def fix_filepath(filepath):
@@ -111,32 +105,15 @@ def destroy(sources,dryrun,sqlobj):
 
 def seek(sources,sqlobj):
     logger.debug("Sources selected: %s" % sources)
-    print bcolors.cyan+">>> Seeking Mode "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
+    usermsg.seekmode()
     for source in sources:
-        sys.stdout.write("\r")
-        sys.stdout.write(bcolors.green+"    Seeking in ")
-        sys.stdout.write(bcolors.red+"%s" % source)
-        sys.stdout.write(bcolors.green+" ............. ")
-        sys.stdout.flush()
-
         logger.info("Seeking through %s" % source)
         filelist = get_filelist(source)
-        count = 0           # Progress Bar counter
+        usermsg.pbarinit(len(filelist))
+        usermsg.seeking(source)
 
-# -=- Progress Bar (class ProgressBar1) -=---------------------------
-        p = ProgressBar(len(filelist))
-        p.fill_char = '='
-# -=- End Progress Bar 2 ----------------------------------------------
         for filepath in filelist:
-            count+=1           # Increment for progress bar count
-# -=- Progress Bar (class ProgressBar1) -=---------------------------
-            str1 = bcolors.green+"    Seeking in"+bcolors.red+" %s "%source
-            str2 = str1+bcolors.green+"............. "+bcolors.yellow
-            p.update_time(count)
-            sys.stdout.write("\r")
-            sys.stdout.write("%s%s" % (str2, p))
-#            sys.stdout.flush()
-# -=- End Progress Bar -=-------------------------------------------
+            usermsg.seekupdate(source)
             filename = os.path.split(filepath)[1]
             update = False
             logger.debug("messing with file: %s" % filename)
@@ -161,27 +138,28 @@ def seek(sources,sqlobj):
                     if sqlsize != size:
                         logger.warn("File %s already in the database and size is different db/real -> %s/%s" % (filepath,sqlsize,size))
                     update = True
-            sys.stdout.write(bcolors.blue+" MD5")
+            usermsg.md5()
             md5     = get_md5(filepath)
-#            sys.stdout.write("    ")
-            sys.stdout.flush()
             logger.debug("MD5 for file %s is %s" % (filename,md5))
             if update:
                 sql = "UPDATE SND SET MD5='%s',SIZE='%s',CTIME='%s' WHERE PATH=%s%s%s;" % (md5,size,int(ctime),quote,filepath,quote)
             if not update:
                 sql = "INSERT INTO SND (PATH,MD5,SIZE,CTIME) VALUES (%s%s%s,'%s',%s,%s)" % (quote,filepath,quote,md5,size,int(ctime))
             sqlobj.execute(sql)
-        print (bcolors.reset+" ")
-    print (bcolors.reset+" ")
+    usermsg.reset()
 
 def wipe(sqlobj):
+    usermsg.wiping()
     logger.info("Wiping database")
     sql = "DELETE FROM SND"
     sqlobj.execute(sql)
     logger.debug("Database wiped clean")
+    usermsg.done()
+    usermsg.reset()
     return
 
 def clear(sources,sqlobj):
+    usermsg.cleaning()
     logger.debug("Sources selected: %s" % sources)
     if len(sources) == 0: sources = [""]
     for source in sources:
@@ -195,21 +173,7 @@ def clear(sources,sqlobj):
         if source.find("'") >= 0: quote = '"'
         sql = "SELECT ID,PATH,CTIME,SIZE FROM SND WHERE PATH LIKE %s%s%s" % (quote,source + "%%",quote)
         out = sqlobj.execute(sql)
-# -=- Progress Bar (class ProgressBar) -=---------------------------
-        count = 0           # Progress Bar counter
-        p = ProgressBar(len(out))
-        p.fill_char = '='
-# -=- End Progress Bar  ----------------------------------------------
         for sqlid,sqlpath,sqlctime,sqlsize in out:
-# -=- Progress Bar (class ProgressBar) -=---------------------------
-            count+=1           # Increment for progress bar count
-            str1 = bcolors.green+"    Clearing "+bcolors.red+" %s "%source
-            str2 = str1+bcolors.green+"............. "+bcolors.yellow
-            p.update_time(count)
-            sys.stdout.write("\r")
-            sys.stdout.write("%s%s" % (str2, p))
-            sys.stdout.flush()
-# -=- End Progress Bar 2 -=-------------------------------------------
             if not os.path.exists(sqlpath):
                 logger.debug("File %s not found. Deleting" % sqlpath)
                 sqlobj.execute("DELETE FROM SND WHERE ID=%s" % (sqlid,))
@@ -226,11 +190,11 @@ def clear(sources,sqlobj):
             if sqlsize != size:
                 logger.warn("File %s in the database has different size. Deleting db/real -> %s/%s" % (sqlpath,sqlsize,size))
                 sqlobj.execute("DELETE FROM SND WHERE ID=%s" % (sqlid,))
-    print
+    usermsg.done()
+    usermsg.reset()
 
 if __name__ == "__main__":
     options,arguments = parse(version)
-
     ### LOG DEF ####################################################################
     loglvl = 40 - options.verbose*10
     if loglvl <= 0: loglvl = 1
@@ -243,6 +207,7 @@ if __name__ == "__main__":
     logger.addHandler(ch)
     ################################################################################
 
+    usermsg = usermsg()
     logger.debug("optparse options: %s" % options)
     logger.debug("optparse arguments: %s" % arguments)
 
