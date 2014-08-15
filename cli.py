@@ -4,7 +4,7 @@
 
 import sys
 
-from optparse import OptionParser,OptionGroup
+from optparse import OptionParser, OptionGroup
 
 def parse(version):
     usage   = "usage: %prog [options] [SOURCE1] [SOURCE2] ..."

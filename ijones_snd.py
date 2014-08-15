@@ -13,7 +13,7 @@ from bcolors        import bcolors
 from ProgressBar    import ProgressBar
 from cli            import parse
 from sqlite_snd     import sqlite_snd
-from usermsg        import usermsg
+from UserMsg        import UserMsg
 
 sqlitepath = "~/.ijones/p.sqlite"
 program_name    = "IJ SND"
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     logger.addHandler(ch)
     ################################################################################
 
-    usermsg = usermsg()
+    usermsg = UserMsg()
     logger.debug("optparse options: %s" % options)
     logger.debug("optparse arguments: %s" % arguments)
 
