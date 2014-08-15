@@ -124,7 +124,6 @@ def destroy(sources, dryrun, sqlobj):
                 remove_file(file_to_del, msg="keeping %s, ctime:%s" %
                             (file_to_keep, ctime_to_keep))
 
-
 def seek(sources, sqlobj):
     logger.debug("Sources selected: %s" % sources)
     print bcolors.cyan+">>> Seeking Mode "+bcolors.white+"["+bcolors.highlightmagenta+"enabled"+bcolors.reset+bcolors.white+"]"
