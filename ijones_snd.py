@@ -31,6 +31,7 @@ def get_md5(filepath):
         return stdoutsplit[0]
 
 def get_filelist(source):
+    source = unicode(source)
     usermsg.flist(source)
     filelist = []
     for r,d,f in os.walk(source):
